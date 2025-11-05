@@ -40,13 +40,25 @@ class DibujoNodo extends CustomPainter {
   }
 
   void _dibujarEnlaces(Canvas canvas) {
+    // Sombra del enlace
+    Paint paintSombra = Paint()
+      ..color = Colors.black.withOpacity(0.3)
+      ..strokeWidth = 4.0
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+
     Paint paintLinea = Paint()
-      ..color = Colors.grey.shade600
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
+      ..shader = const LinearGradient(
+        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+      ).createShader(const Rect.fromLTWH(0, 0, 500, 500))
+      ..strokeWidth = 3.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
     Paint paintFlecha = Paint()
-      ..color = Colors.grey.shade600
+      ..shader = const LinearGradient(
+        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+      ).createShader(const Rect.fromLTWH(0, 0, 200, 200))
       ..style = PaintingStyle.fill;
 
     for (var enlace in enlaces) {
@@ -65,6 +77,9 @@ class DibujoNodo extends CustomPainter {
           fin.dx,
           fin.dy,
         );
+        // Dibujar sombra primero
+        canvas.drawPath(path, paintSombra);
+        // Luego la línea con gradiente
         canvas.drawPath(path, paintLinea);
 
         // Dibujar punto de control
@@ -78,7 +93,8 @@ class DibujoNodo extends CustomPainter {
         // Dibujar peso cerca del punto de control
         _dibujarPeso(canvas, enlace.puntoControl!, enlace.peso);
       } else {
-        // Dibujar línea recta
+        // Dibujar línea recta con sombra
+        canvas.drawLine(inicio, fin, paintSombra);
         canvas.drawLine(inicio, fin, paintLinea);
 
         // Dibujar flecha
@@ -93,18 +109,33 @@ class DibujoNodo extends CustomPainter {
   }
 
   void _dibujarPuntoControl(Canvas canvas, Offset punto) {
-    Paint paintControl = Paint()
-      ..color = Colors.blue.shade300
+    // Glow effect
+    Paint paintGlow = Paint()
+      ..color = const Color(0xFF00D4FF).withOpacity(0.5)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
       ..style = PaintingStyle.fill;
+    canvas.drawCircle(punto, 10, paintGlow);
     
-    canvas.drawCircle(punto, 6, paintControl);
+    // Gradiente radial
+    Paint paintControl = Paint()
+      ..shader = const RadialGradient(
+        colors: [Color(0xFF00D4FF), Color(0xFF0099CC)],
+      ).createShader(Rect.fromCircle(center: punto, radius: 8))
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(punto, 8, paintControl);
     
+    // Borde brillante
     Paint paintBorde = Paint()
-      ..color = Colors.blue.shade700
+      ..color = Colors.white.withOpacity(0.8)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
+    canvas.drawCircle(punto, 8, paintBorde);
     
-    canvas.drawCircle(punto, 6, paintBorde);
+    // Punto central brillante
+    Paint paintCentro = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(punto, 2, paintCentro);
   }
 
   Offset _calcularPuntoBezier(Offset p0, Offset p1, Offset p2, double t) {
@@ -139,22 +170,54 @@ class DibujoNodo extends CustomPainter {
   }
 
   void _dibujarPeso(Canvas canvas, Offset posicion, double peso) {
-    TextSpan span = TextSpan(
+    // Fondo con glassmorphism
+    Paint paintFondo = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    
+    final textSpan = TextSpan(
       text: peso.toStringAsFixed(1),
       style: const TextStyle(
-        color: Colors.black,
-        fontSize: 14,
+        color: Color(0xFF667eea),
+        fontSize: 16,
         fontWeight: FontWeight.bold,
-        backgroundColor: Colors.white,
+        shadows: [
+          Shadow(
+            color: Colors.black26,
+            offset: Offset(1, 1),
+            blurRadius: 2,
+          ),
+        ],
       ),
     );
 
     TextPainter textPainter = TextPainter(
-      text: span,
+      text: textSpan,
       textDirection: TextDirection.ltr,
     );
 
     textPainter.layout();
+    
+    // Dibujar fondo redondeado
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: posicion,
+        width: textPainter.width + 12,
+        height: textPainter.height + 8,
+      ),
+      const Radius.circular(12),
+    );
+    
+    canvas.drawRRect(rect, paintFondo);
+    
+    // Borde del fondo
+    Paint paintBorde = Paint()
+      ..color = const Color(0xFF667eea).withOpacity(0.5)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    canvas.drawRRect(rect, paintBorde);
+    
     textPainter.paint(
       canvas,
       Offset(posicion.dx - textPainter.width / 2, posicion.dy - textPainter.height / 2),
@@ -164,10 +227,39 @@ class DibujoNodo extends CustomPainter {
   void _dibujarRutaOptima(Canvas canvas) {
     if (rutaOptima == null || rutaOptima!.length < 2) return;
 
+    // Sombra de la ruta
+    Paint paintSombra = Paint()
+      ..color = Colors.black.withOpacity(0.3)
+      ..strokeWidth = 8.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+    // Ruta con gradiente animado
     Paint paintRuta = Paint()
-      ..color = Colors.green.withOpacity(0.7)
-      ..strokeWidth = 4.0
-      ..style = PaintingStyle.stroke;
+      ..shader = LinearGradient(
+        colors: [
+          const Color(0xFF00F260),
+          const Color(0xFF0575E6),
+          const Color(0xFF00F260),
+        ],
+        stops: [
+          0.0,
+          animacionProgreso,
+          1.0,
+        ],
+      ).createShader(const Rect.fromLTWH(0, 0, 1000, 1000))
+      ..strokeWidth = 6.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    
+    // Glow effect
+    Paint paintGlow = Paint()
+      ..color = const Color(0xFF00F260).withOpacity(0.5)
+      ..strokeWidth = 10.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
 
     // Calcular cuántos segmentos dibujar según el progreso de animación
     int segmentosTotales = rutaOptima!.length;
@@ -188,38 +280,120 @@ class DibujoNodo extends CustomPainter {
           inicio.dx + (fin.dx - inicio.dx) * progresoParcial,
           inicio.dy + (fin.dy - inicio.dy) * progresoParcial,
         );
+        canvas.drawLine(inicio, finParcial, paintSombra);
+        canvas.drawLine(inicio, finParcial, paintGlow);
         canvas.drawLine(inicio, finParcial, paintRuta);
       } else {
+        canvas.drawLine(inicio, fin, paintSombra);
+        canvas.drawLine(inicio, fin, paintGlow);
         canvas.drawLine(inicio, fin, paintRuta);
       }
     }
   }
 
   void _dibujarNodos(Canvas canvas) {
-    Paint paint = Paint()..style = PaintingStyle.fill;
-
     for (int i = 0; i < vNodo.length; i++) {
       var ele = vNodo[i];
+      Offset centro = Offset(ele.x, ele.y);
       
-      // Resaltar nodo seleccionado
+      // Resaltar nodo seleccionado con pulso
       if (nodoSeleccionado == i) {
-        Paint paintResaltado = Paint()
-          ..color = Colors.yellow
+        double pulseFactor = 1.0 + (sin(animacionProgreso * pi * 4) * 0.15);
+        
+        // Glow pulsante
+        Paint paintGlowPulse = Paint()
+          ..color = const Color(0xFFFFD700).withOpacity(0.6)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15)
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(centro, ele.radio * pulseFactor * 1.3, paintGlowPulse);
+        
+        // Anillo exterior
+        Paint paintAnillo = Paint()
+          ..shader = const SweepGradient(
+            colors: [
+              Color(0xFFFFD700),
+              Color(0xFFFF6B6B),
+              Color(0xFFFFD700),
+            ],
+          ).createShader(Rect.fromCircle(center: centro, radius: ele.radio + 10))
           ..style = PaintingStyle.stroke
           ..strokeWidth = 4.0;
-        canvas.drawCircle(Offset(ele.x, ele.y), ele.radio + 5, paintResaltado);
+        canvas.drawCircle(centro, ele.radio + 8, paintAnillo);
       }
 
-      paint.color = ele.color;
-      canvas.drawCircle(Offset(ele.x, ele.y), ele.radio, paint);
+      // Sombra del nodo
+      Paint paintSombra = Paint()
+        ..color = Colors.black.withOpacity(0.4)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(ele.x + 3, ele.y + 3), ele.radio, paintSombra);
+      
+      // Glow del nodo
+      Paint paintGlow = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            ele.color.withOpacity(0.8),
+            ele.color.withOpacity(0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: centro, radius: ele.radio * 1.5))
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(centro, ele.radio * 1.3, paintGlow);
+      
+      // Gradiente radial del nodo
+      Paint paintNodo = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            ele.color.withOpacity(1.0),
+            ele.color.withOpacity(0.7),
+            ele.color.withOpacity(0.9),
+          ],
+          stops: const [0.0, 0.7, 1.0],
+        ).createShader(Rect.fromCircle(center: centro, radius: ele.radio))
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(centro, ele.radio, paintNodo);
+      
+      // Brillo superior (highlight)
+      Paint paintBrillo = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.3, -0.3),
+          colors: [
+            Colors.white.withOpacity(0.6),
+            Colors.white.withOpacity(0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: centro, radius: ele.radio))
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(
+        Offset(ele.x - ele.radio * 0.2, ele.y - ele.radio * 0.2),
+        ele.radio * 0.5,
+        paintBrillo,
+      );
+      
+      // Borde del nodo
+      Paint paintBorde = Paint()
+        ..color = Colors.white.withOpacity(0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5;
+      canvas.drawCircle(centro, ele.radio, paintBorde);
 
-      // Dibujar texto del nodo
+      // Dibujar texto del nodo con sombra
       TextSpan span = TextSpan(
         text: ele.mensaje,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 16,
           fontWeight: FontWeight.bold,
+          shadows: [
+            Shadow(
+              color: Colors.black87,
+              offset: Offset(2, 2),
+              blurRadius: 4,
+            ),
+            Shadow(
+              color: Colors.black54,
+              offset: Offset(1, 1),
+              blurRadius: 2,
+            ),
+          ],
         ),
       );
 
