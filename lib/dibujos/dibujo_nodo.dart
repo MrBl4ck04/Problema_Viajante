@@ -287,6 +287,19 @@ class DibujoNodo extends CustomPainter {
         canvas.drawLine(inicio, fin, paintSombra);
         canvas.drawLine(inicio, fin, paintGlow);
         canvas.drawLine(inicio, fin, paintRuta);
+        
+        // Dibujar flecha direccional en el punto medio
+        Offset puntoMedio = Offset(
+          (inicio.dx + fin.dx) / 2,
+          (inicio.dy + fin.dy) / 2,
+        );
+        Offset direccion = Offset(fin.dx - inicio.dx, fin.dy - inicio.dy);
+        
+        Paint paintFlecha = Paint()
+          ..color = const Color(0xFF00F260)
+          ..style = PaintingStyle.fill;
+        
+        _dibujarFlecha(canvas, puntoMedio, direccion, paintFlecha);
       }
     }
   }

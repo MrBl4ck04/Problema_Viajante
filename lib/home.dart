@@ -12,12 +12,13 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
+class _HomeState extends State<Home> with TickerProviderStateMixin {
   int modo = -1; 
   final ValueNotifier<List<ModeloNodo>> vNodoNotifier = ValueNotifier([]);
   final ValueNotifier<List<ModeloEnlace>> enlacesNotifier = ValueNotifier([]);
   int? nodoSeleccionado; // Para arrastrar o seleccionar
   int? nodoOrigen; // Para crear enlaces
+  int? enlaceSeleccionado; // Para editar peso de enlace
   List<int>? rutaOptima;
   double animacionProgreso = 0.0;
   AnimationController? animationController;
@@ -161,78 +162,145 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Boton TSP con efecto moderno
-              Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFf12711), Color(0xFFf5af19)],
+              Row(
+                children: [
+                  // Botón TSP
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFf093fb), Color(0xFFf5576c)],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFf093fb).withOpacity(0.5),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: resolviendoTSP ? null : _resolverTSP,
+                      icon: resolviendoTSP
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.route, size: 20),
+                      label: const Text(
+                        'TSP',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFf12711).withOpacity(0.5),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+                  const SizedBox(width: 8),
+                  // Botón Limpiar
+                  Tooltip(
+                    message: 'Limpiar solución',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFEB3349), Color(0xFFF45C43)],
+                        ),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: IconButton(
+                        onPressed: rutaOptima != null ? _limpiarSolucion : null,
+                        icon: const Icon(Icons.clear, color: Colors.white, size: 20),
+                        padding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Botón Conectar Todos
+                  Tooltip(
+                    message: 'Conectar todos los nodos',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+                        ),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: IconButton(
+                        onPressed: _conectarTodosLosNodos,
+                        icon: const Icon(Icons.hub, color: Colors.white, size: 20),
+                        padding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Botón Limpiar Enlaces
+                  Tooltip(
+                    message: 'Limpiar todos los enlaces',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                        ),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: IconButton(
+                        onPressed: enlacesNotifier.value.isNotEmpty ? _limpiarEnlaces : null,
+                        icon: const Icon(Icons.link_off, color: Colors.white, size: 20),
+                        padding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildModeButton(
+                      icon: Icons.add_circle_outline,
+                      modeNumber: 1,
+                      tooltip: 'Agregar Nodos',
+                    ),
+                    const SizedBox(width: 8),
+                    _buildModeButton(
+                      icon: Icons.delete_outline,
+                      modeNumber: 2,
+                      tooltip: 'Eliminar Nodos',
+                    ),
+                    const SizedBox(width: 8),
+                    _buildModeButton(
+                      icon: Icons.open_with,
+                      modeNumber: 3,
+                      tooltip: 'Mover Nodos',
+                    ),
+                    const SizedBox(width: 8),
+                    _buildModeButton(
+                      icon: Icons.link,
+                      modeNumber: 4,
+                      tooltip: 'Crear Enlaces',
+                    ),
+                    const SizedBox(width: 8),
+                    _buildModeButton(
+                      icon: Icons.edit_road,
+                      modeNumber: 5,
+                      tooltip: 'Editar Peso de Enlace',
                     ),
                   ],
                 ),
-                child: ElevatedButton.icon(
-                  onPressed: resolviendoTSP ? null : _resolverTSP,
-                  icon: resolviendoTSP
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Icon(Icons.route, size: 24),
-                  label: const Text(
-                    'TSP',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.white,
-                    shadowColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  _buildModeButton(
-                    icon: Icons.add_circle_outline,
-                    modeNumber: 1,
-                    tooltip: 'Agregar Nodos',
-                  ),
-                  const SizedBox(width: 12),
-                  _buildModeButton(
-                    icon: Icons.delete_outline,
-                    modeNumber: 2,
-                    tooltip: 'Eliminar Nodos',
-                  ),
-                  const SizedBox(width: 12),
-                  _buildModeButton(
-                    icon: Icons.open_with,
-                    modeNumber: 3,
-                    tooltip: 'Mover Nodos',
-                  ),
-                  const SizedBox(width: 12),
-                  _buildModeButton(
-                    icon: Icons.link,
-                    modeNumber: 4,
-                    tooltip: 'Crear Enlaces',
-                  ),
-                ],
               ),
             ],
           ),
@@ -295,6 +363,12 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
             nodoSeleccionado = null;
           });
         }
+      }
+    } else if (modo == 5) {
+      // Editar peso de enlace
+      int? enlaceIndex = _buscarEnlace(posicion);
+      if (enlaceIndex != null) {
+        _mostrarDialogoEditarPeso(enlaceIndex);
       }
     }
   }
@@ -811,7 +885,40 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   void _resolverTSP() async {
     if (vNodoNotifier.value.length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Se necesitan al menos 2 nodos')),
+        const SnackBar(
+          content: Text('Se necesitan al menos 2 nodos'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (enlacesNotifier.value.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.warning, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'No hay enlaces. Usa "Conectar Todos" o crea enlaces manualmente',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFFF6B6B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
+        ),
       );
       return;
     }
@@ -1005,49 +1112,251 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
     );
   }
 
-  Future<void> _ejecutarTSP() async {
+  void _resetearEstadoTSP() {
+    // Detener y limpiar animación
+    if (animationController != null) {
+      animationController!.stop();
+      animationController!.dispose();
+      animationController = null;
+    }
+    
+    // Resetear todas las variables de estado relacionadas con TSP
     setState(() {
-      resolviendoTSP = true;
       rutaOptima = null;
       animacionProgreso = 0.0;
-    });
-
-    // Ejecutar algoritmo genetico
-    final tsp = TSPGenetico(
-      nodos: vNodoNotifier.value,
-      enlaces: enlacesNotifier.value,
-      tamanioPoblacion: 100,
-      generaciones: 500,
-      tasaMutacion: 0.02,
-      tasaCruce: 0.8,
-      nodoInicial: nodoInicialTSP,
-    );
-
-    final resultado = await Future.delayed(
-      const Duration(milliseconds: 100),
-      () => tsp.resolver(),
-    );
-
-    setState(() {
       resolviendoTSP = false;
-      rutaOptima = resultado.mejorRuta;
     });
+  }
 
-    // Iniciar animacion
-    _iniciarAnimacion();
+  void _limpiarSolucion() {
+    _resetearEstadoTSP();
+    
+    // Resetear nodo inicial
+    setState(() {
+      nodoInicialTSP = 0;
+    });
+    
+    // Mostrar confirmación
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            const Text(
+              'Solución limpiada',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF1a1a2e),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _conectarTodosLosNodos() {
+    if (vNodoNotifier.value.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Se necesitan al menos 2 nodos para conectar'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final vNodo = vNodoNotifier.value;
+    final enlacesExistentes = List<ModeloEnlace>.from(enlacesNotifier.value);
+    int enlacesAgregados = 0;
+
+    // Conectar cada nodo con todos los demás (grafo completo)
+    for (int i = 0; i < vNodo.length; i++) {
+      for (int j = i + 1; j < vNodo.length; j++) {
+        // Verificar si ya existe un enlace de i a j
+        bool existeIJ = enlacesExistentes.any((enlace) =>
+          enlace.origen == i && enlace.destino == j
+        );
+        
+        // Verificar si ya existe un enlace de j a i
+        bool existeJI = enlacesExistentes.any((enlace) =>
+          enlace.origen == j && enlace.destino == i
+        );
+
+        // Calcular distancia euclidiana
+        double dx = vNodo[i].x - vNodo[j].x;
+        double dy = vNodo[i].y - vNodo[j].y;
+        double distancia = sqrt(dx * dx + dy * dy);
+        
+        // Redondear a 2 decimales
+        double peso = double.parse(distancia.toStringAsFixed(2));
+
+        // Agregar enlace i -> j si no existe
+        if (!existeIJ) {
+          enlacesExistentes.add(
+            ModeloEnlace(
+              origen: i,
+              destino: j,
+              peso: peso,
+            ),
+          );
+          enlacesAgregados++;
+        }
+        
+        // Agregar enlace j -> i si no existe
+        if (!existeJI) {
+          enlacesExistentes.add(
+            ModeloEnlace(
+              origen: j,
+              destino: i,
+              peso: peso,
+            ),
+          );
+          enlacesAgregados++;
+        }
+      }
+    }
+
+    // Forzar actualización creando una nueva lista
+    enlacesNotifier.value = List<ModeloEnlace>.from(enlacesExistentes);
+
+    if (enlacesAgregados > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF11998e), Color(0xFF38ef7d)],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Se agregaron $enlacesAgregados enlaces automáticamente',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          backgroundColor: const Color(0xFF1a1a2e),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Todos los nodos ya están conectados'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _ejecutarTSP() async {
+    // Limpiar estado anterior completamente
+    _resetearEstadoTSP();
+    
+    // Marcar que estamos resolviendo
+    setState(() {
+      resolviendoTSP = true;
+    });
+    
+    // Esperar un frame para que el UI se actualice
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    try {
+      // Ejecutar algoritmo genetico
+      final tsp = TSPGenetico(
+        nodos: vNodoNotifier.value,
+        enlaces: enlacesNotifier.value,
+        tamanioPoblacion: 100,
+        generaciones: 500,
+        tasaMutacion: 0.02,
+        tasaCruce: 0.8,
+        nodoInicial: nodoInicialTSP,
+      );
+
+      final resultado = await Future.delayed(
+        const Duration(milliseconds: 100),
+        () => tsp.resolver(),
+      );
+
+      if (mounted) {
+        setState(() {
+          resolviendoTSP = false;
+          rutaOptima = resultado.mejorRuta;
+        });
+
+        // Iniciar animacion
+        _iniciarAnimacion();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          resolviendoTSP = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al resolver TSP: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   void _iniciarAnimacion() {
-    animationController?.dispose();
+    // Limpiar controller anterior si existe
+    if (animationController != null) {
+      animationController!.stop();
+      animationController!.dispose();
+      animationController = null;
+    }
+    
+    // Crear nuevo controller
     animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     );
 
     animationController!.addListener(() {
-      setState(() {
-        animacionProgreso = animationController!.value;
-      });
+      if (mounted) {
+        setState(() {
+          animacionProgreso = animationController!.value;
+        });
+      }
     });
 
     animationController!.forward();
@@ -1128,6 +1437,300 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
     );
   }
 
+  void _limpiarEnlaces() {
+    // Limpiar enlaces creando una nueva lista vacía
+    enlacesNotifier.value = List<ModeloEnlace>.from([]);
+    
+    // También limpiar la solución si existe
+    if (rutaOptima != null) {
+      _resetearEstadoTSP();
+    }
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            const Text(
+              'Todos los enlaces eliminados',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF1a1a2e),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  int? _buscarEnlace(Offset posicion) {
+    final enlaces = enlacesNotifier.value;
+    final vNodo = vNodoNotifier.value;
+    
+    for (int i = 0; i < enlaces.length; i++) {
+      final enlace = enlaces[i];
+      if (enlace.origen >= vNodo.length || enlace.destino >= vNodo.length) continue;
+      
+      Offset inicio = Offset(vNodo[enlace.origen].x, vNodo[enlace.origen].y);
+      Offset fin = Offset(vNodo[enlace.destino].x, vNodo[enlace.destino].y);
+      
+      // Calcular distancia del punto a la línea
+      double distancia;
+      if (enlace.puntoControl != null) {
+        // Para curvas, verificar distancia al punto de control
+        double distControl = (posicion - enlace.puntoControl!).distance;
+        if (distControl <= 20) return i;
+        
+        // También verificar distancia a la curva (simplificado)
+        distancia = _distanciaPuntoALinea(posicion, inicio, fin);
+      } else {
+        distancia = _distanciaPuntoALinea(posicion, inicio, fin);
+      }
+      
+      if (distancia <= 15) return i;
+    }
+    return null;
+  }
+
+  double _distanciaPuntoALinea(Offset punto, Offset lineaInicio, Offset lineaFin) {
+    double dx = lineaFin.dx - lineaInicio.dx;
+    double dy = lineaFin.dy - lineaInicio.dy;
+    double longitud = sqrt(dx * dx + dy * dy);
+    
+    if (longitud == 0) return (punto - lineaInicio).distance;
+    
+    double t = ((punto.dx - lineaInicio.dx) * dx + (punto.dy - lineaInicio.dy) * dy) / (longitud * longitud);
+    t = t.clamp(0.0, 1.0);
+    
+    Offset proyeccion = Offset(
+      lineaInicio.dx + t * dx,
+      lineaInicio.dy + t * dy,
+    );
+    
+    return (punto - proyeccion).distance;
+  }
+
+  void _mostrarDialogoEditarPeso(int indiceEnlace) {
+    final enlace = enlacesNotifier.value[indiceEnlace];
+    final TextEditingController pesoController = TextEditingController(text: enlace.peso.toString());
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFF6B6B),
+                Color(0xFFFF8E53),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 30,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.edit_road,
+                size: 48,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Editar Peso',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Nodo ${enlace.origen + 1} → Nodo ${enlace.destino + 1}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: pesoController,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Nuevo peso',
+                  labelStyle: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 16,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.straighten,
+                    color: Colors.white70,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(
+                      color: Colors.white,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.white.withOpacity(0.1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF56ab2f), Color(0xFFa8e063)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          double nuevoPeso = double.tryParse(pesoController.text) ?? enlace.peso;
+                          
+                          // Crear completamente nueva lista de enlaces
+                          final enlacesActualizados = <ModeloEnlace>[];
+                          for (int i = 0; i < enlacesNotifier.value.length; i++) {
+                            if (i == indiceEnlace) {
+                              enlacesActualizados.add(ModeloEnlace(
+                                origen: enlace.origen,
+                                destino: enlace.destino,
+                                peso: nuevoPeso,
+                                puntoControl: enlace.puntoControl,
+                              ));
+                            } else {
+                              enlacesActualizados.add(enlacesNotifier.value[i]);
+                            }
+                          }
+                          
+                          // Asignar la nueva lista
+                          enlacesNotifier.value = enlacesActualizados;
+                          
+                          // Limpiar solución completamente para que se recalcule
+                          if (rutaOptima != null) {
+                            _resetearEstadoTSP();
+                          }
+                          
+                          Navigator.pop(context);
+                          
+                          // Mostrar confirmación
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Peso actualizado a ${nuevoPeso.toStringAsFixed(1)}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: const Color(0xFF1a1a2e),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              margin: const EdgeInsets.all(16),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Guardar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   List<Color> _getModoGradient() {
     switch (modo) {
       case 1:
@@ -1138,6 +1741,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         return [const Color(0xFF4776E6), const Color(0xFF8E54E9)];
       case 4:
         return [const Color(0xFFf093fb), const Color(0xFFf5576c)];
+      case 5:
+        return [const Color(0xFFFF6B6B), const Color(0xFFFF8E53)];
       default:
         return [Colors.grey, Colors.grey];
     }
@@ -1153,6 +1758,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         return Icons.open_with;
       case 4:
         return Icons.link;
+      case 5:
+        return Icons.edit_road;
       default:
         return Icons.help_outline;
     }
@@ -1168,6 +1775,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         return 'MOVER NODOS';
       case 4:
         return nodoOrigen == null ? 'SELECCIONAR ORIGEN' : 'SELECCIONAR DESTINO';
+      case 5:
+        return 'EDITAR PESO DE ENLACE';
       default:
         return '';
     }
