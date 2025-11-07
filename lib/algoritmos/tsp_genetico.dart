@@ -9,6 +9,7 @@ class TSPGenetico {
   final int generaciones;
   final double tasaMutacion;
   final double tasaCruce;
+  final int nodoInicial;
   final Random random = Random();
 
   TSPGenetico({
@@ -18,6 +19,7 @@ class TSPGenetico {
     this.generaciones = 500,
     this.tasaMutacion = 0.02,
     this.tasaCruce = 0.8,
+    this.nodoInicial = 0,
   });
 
   // Calcula la distancia entre dos nodos usando los enlaces
@@ -47,14 +49,17 @@ class TSPGenetico {
     return distanciaTotal;
   }
 
-  // Genera una población inicial aleatoria
+  // Genera una población inicial aleatoria comenzando desde el nodo inicial
   List<List<int>> generarPoblacionInicial() {
     List<List<int>> poblacion = [];
     List<int> rutaBase = List.generate(nodos.length, (index) => index);
+    rutaBase.remove(nodoInicial);
 
     for (int i = 0; i < tamanioPoblacion; i++) {
       List<int> ruta = List.from(rutaBase);
       ruta.shuffle(random);
+      // Insertar el nodo inicial al principio
+      ruta.insert(0, nodoInicial);
       poblacion.add(ruta);
     }
 
@@ -69,13 +74,19 @@ class TSPGenetico {
     return fitness[idx1] < fitness[idx2] ? poblacion[idx1] : poblacion[idx2];
   }
 
-  // Cruce ordenado (Order Crossover - OX)
+  // Cruce ordenado (Order Crossover - OX) manteniendo el nodo inicial
   List<int> cruceOrdenado(List<int> padre1, List<int> padre2) {
     int size = padre1.length;
-    int inicio = random.nextInt(size);
+    if (size <= 2) return List.from(padre1);
+    
+    // Trabajar solo con los nodos después del inicial
+    int inicio = 1 + random.nextInt(size - 1);
     int fin = inicio + random.nextInt(size - inicio);
 
     List<int?> hijo = List.filled(size, null);
+    
+    // El primer nodo siempre es el nodo inicial
+    hijo[0] = nodoInicial;
     
     // Copiar segmento del padre1
     for (int i = inicio; i <= fin; i++) {
@@ -84,26 +95,30 @@ class TSPGenetico {
 
     // Llenar el resto con genes del padre2 en orden
     int posHijo = (fin + 1) % size;
-    int posPadre2 = (fin + 1) % size;
+    if (posHijo == 0) posHijo = 1;
+    int posPadre2 = 1;
 
     while (hijo.contains(null)) {
       if (!hijo.contains(padre2[posPadre2])) {
         hijo[posHijo] = padre2[posPadre2];
         posHijo = (posHijo + 1) % size;
+        if (posHijo == 0) posHijo = 1;
       }
       posPadre2 = (posPadre2 + 1) % size;
+      if (posPadre2 == 0) posPadre2 = 1;
     }
 
     return hijo.cast<int>();
   }
 
-  // Mutación por intercambio
+  // Mutación por intercambio (evitando mutar el nodo inicial)
   List<int> mutacion(List<int> ruta) {
     List<int> rutaMutada = List.from(ruta);
     
-    if (random.nextDouble() < tasaMutacion) {
-      int idx1 = random.nextInt(rutaMutada.length);
-      int idx2 = random.nextInt(rutaMutada.length);
+    if (random.nextDouble() < tasaMutacion && rutaMutada.length > 2) {
+      // Evitar intercambiar el primer nodo (nodo inicial)
+      int idx1 = 1 + random.nextInt(rutaMutada.length - 1);
+      int idx2 = 1 + random.nextInt(rutaMutada.length - 1);
       
       int temp = rutaMutada[idx1];
       rutaMutada[idx1] = rutaMutada[idx2];

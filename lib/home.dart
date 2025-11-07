@@ -22,6 +22,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
   double animacionProgreso = 0.0;
   AnimationController? animationController;
   bool resolviendoTSP = false;
+  int nodoInicialTSP = 0; // Nodo desde donde comenzará el TSP
 
   @override
   void dispose() {
@@ -59,6 +60,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
               radio: vNodo[nodoSeleccionado!].radio,
               color: vNodo[nodoSeleccionado!].color,
               mensaje: vNodo[nodoSeleccionado!].mensaje,
+              nombre: vNodo[nodoSeleccionado!].nombre,
             );
             vNodoNotifier.value = vNodo;
           } else if (modo != 3) {
@@ -243,28 +245,8 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
     final vNodo = List<ModeloNodo>.from(vNodoNotifier.value); 
 
     if (modo == 1) {
-      // Colores vibrantes y variados para los nodos
-      final colores = [
-        const Color(0xFF6A11CB), // Púrpura
-        const Color(0xFFFC466B), // Rosa
-        const Color(0xFF3F5EFB), // Azul
-        const Color(0xFF11998E), // Verde azulado
-        const Color(0xFFFF6B6B), // Rojo coral
-        const Color(0xFFFFD93D), // Amarillo dorado
-        const Color(0xFF6BCB77), // Verde
-        const Color(0xFFFF8C42), // Naranja
-      ];
-      
-      vNodo.add(
-        ModeloNodo(
-          x: posicion.dx,
-          y: posicion.dy,
-          radio: 40,
-          color: colores[vNodo.length % colores.length],
-          mensaje: '${vNodo.length + 1}',
-        ),
-      );
-      vNodoNotifier.value = vNodo;
+      // Mostrar diálogo para nombrar el nodo
+      _mostrarDialogoNombreNodo(posicion, vNodo.length);
     } else if (modo == 2) {
       int index = buscarNodo(posicion.dx, posicion.dy, vNodo);
       if (index != -1) {
@@ -315,6 +297,218 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
         }
       }
     }
+  }
+
+  void _mostrarDialogoNombreNodo(Offset posicion, int indiceNodo) {
+    final TextEditingController nombreController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF134E5E),
+                Color(0xFF71B280),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 30,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.location_on,
+                size: 48,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Nombrar Nodo',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: nombreController,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Nombre del nodo',
+                  hintText: 'Ej: Ciudad A, Punto 1, etc.',
+                  hintStyle: TextStyle(
+                    color: Colors.white.withOpacity(0.4),
+                  ),
+                  labelStyle: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 16,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.edit,
+                    color: Colors.white70,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(
+                      color: Colors.white,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF6B6B).withOpacity(0.5),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          _crearNodoConNombre(posicion, indiceNodo, '');
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.shuffle, size: 20),
+                        label: const Text(
+                          'Aleatorio',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF56ab2f), Color(0xFFa8e063)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF56ab2f).withOpacity(0.5),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          String nombre = nombreController.text.trim();
+                          _crearNodoConNombre(posicion, indiceNodo, nombre);
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Crear',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _crearNodoConNombre(Offset posicion, int indiceNodo, String nombre) {
+    final vNodo = List<ModeloNodo>.from(vNodoNotifier.value);
+    
+    // Colores vibrantes y variados para los nodos
+    final colores = [
+      const Color(0xFF6A11CB), // Púrpura
+      const Color(0xFFFC466B), // Rosa
+      const Color(0xFF3F5EFB), // Azul
+      const Color(0xFF11998E), // Verde azulado
+      const Color(0xFFFF6B6B), // Rojo coral
+      const Color(0xFFFFD93D), // Amarillo dorado
+      const Color(0xFF6BCB77), // Verde
+      const Color(0xFFFF8C42), // Naranja
+    ];
+    
+    vNodo.add(
+      ModeloNodo(
+        x: posicion.dx,
+        y: posicion.dy,
+        radio: 40,
+        color: colores[indiceNodo % colores.length],
+        mensaje: '${indiceNodo + 1}',
+        nombre: nombre.isEmpty ? 'Nodo ${indiceNodo + 1}' : nombre,
+      ),
+    );
+    vNodoNotifier.value = vNodo;
   }
 
   void _mostrarDialogoPeso(int origen, int destino) {
@@ -490,24 +684,42 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
               Row(
                 children: [
                   Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.white.withOpacity(0.1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: Colors.white.withOpacity(0.3),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF6B6B).withOpacity(0.5),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // Generar peso aleatorio entre 1 y 100
+                          double pesoAleatorio = Random().nextInt(100) + 1.0;
+                          _crearEnlace(origen, destino, pesoAleatorio);
+                          Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.shuffle, size: 20),
+                        label: const Text(
+                          'Aleatorio',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
@@ -604,6 +816,196 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       return;
     }
 
+    // Mostrar diálogo para seleccionar nodo inicial
+    await _mostrarDialogoSeleccionNodoInicial();
+  }
+
+  Future<void> _mostrarDialogoSeleccionNodoInicial() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF8E2DE2),
+                  Color(0xFF4A00E0),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.flag,
+                  size: 48,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Seleccionar Nodo Inicial',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Elige desde dónde comenzará el recorrido',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: List.generate(
+                        vNodoNotifier.value.length,
+                        (index) {
+                          final nodo = vNodoNotifier.value[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: InkWell(
+                              onTap: () {
+                                setStateDialog(() {
+                                  nodoInicialTSP = index;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: nodoInicialTSP == index
+                                      ? Colors.white.withOpacity(0.3)
+                                      : Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: nodoInicialTSP == index
+                                        ? Colors.white
+                                        : Colors.white.withOpacity(0.3),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: nodo.color,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: nodo.color.withOpacity(0.5),
+                                            blurRadius: 8,
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          nodo.mensaje,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Text(
+                                        nodo.nombre,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    if (nodoInicialTSP == index)
+                                      const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.white,
+                                        size: 28,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF56ab2f), Color(0xFFa8e063)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF56ab2f).withOpacity(0.5),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _ejecutarTSP();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Resolver TSP',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _ejecutarTSP() async {
     setState(() {
       resolviendoTSP = true;
       rutaOptima = null;
@@ -618,6 +1020,7 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       generaciones: 500,
       tasaMutacion: 0.02,
       tasaCruce: 0.8,
+      nodoInicial: nodoInicialTSP,
     );
 
     final resultado = await Future.delayed(
@@ -629,68 +1032,6 @@ class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
       resolviendoTSP = false;
       rutaOptima = resultado.mejorRuta;
     });
-
-    // Mostrar resultado con diseño moderno
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF00F260), Color(0xFF0575E6)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Ruta Óptima Encontrada',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Distancia: ${resultado.distanciaTotal.toStringAsFixed(2)} unidades',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          backgroundColor: const Color(0xFF1a1a2e),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 4),
-          elevation: 8,
-        ),
-      );
-    }
 
     // Iniciar animacion
     _iniciarAnimacion();

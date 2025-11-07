@@ -375,8 +375,8 @@ class DibujoNodo extends CustomPainter {
         ..strokeWidth = 2.5;
       canvas.drawCircle(centro, ele.radio, paintBorde);
 
-      // Dibujar texto del nodo con sombra
-      TextSpan span = TextSpan(
+      // Dibujar número del nodo
+      TextSpan spanNumero = TextSpan(
         text: ele.mensaje,
         style: const TextStyle(
           color: Colors.white,
@@ -397,17 +397,69 @@ class DibujoNodo extends CustomPainter {
         ),
       );
 
-      TextPainter textPainter = TextPainter(
-        text: span,
+      TextPainter textPainterNumero = TextPainter(
+        text: spanNumero,
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center,
       );
 
-      textPainter.layout();
-      textPainter.paint(
+      textPainterNumero.layout();
+      textPainterNumero.paint(
         canvas,
-        Offset(ele.x - textPainter.width / 2, ele.y - textPainter.height / 2),
+        Offset(ele.x - textPainterNumero.width / 2, ele.y - textPainterNumero.height / 2),
       );
+
+      // Dibujar nombre del nodo debajo si existe y no está vacío
+      if (ele.nombre.isNotEmpty) {
+        TextSpan spanNombre = TextSpan(
+          text: ele.nombre,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            shadows: [
+              Shadow(
+                color: Colors.black87,
+                offset: Offset(1, 1),
+                blurRadius: 3,
+              ),
+            ],
+          ),
+        );
+
+        TextPainter textPainterNombre = TextPainter(
+          text: spanNombre,
+          textDirection: TextDirection.ltr,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          ellipsis: '...',
+        );
+
+        textPainterNombre.layout(maxWidth: ele.radio * 3);
+        
+        // Dibujar fondo semi-transparente para el nombre
+        final nombreRect = RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: Offset(ele.x, ele.y + ele.radio + 18),
+            width: textPainterNombre.width + 8,
+            height: textPainterNombre.height + 4,
+          ),
+          const Radius.circular(8),
+        );
+        
+        Paint paintFondoNombre = Paint()
+          ..color = Colors.black.withOpacity(0.6)
+          ..style = PaintingStyle.fill;
+        canvas.drawRRect(nombreRect, paintFondoNombre);
+        
+        textPainterNombre.paint(
+          canvas,
+          Offset(
+            ele.x - textPainterNombre.width / 2,
+            ele.y + ele.radio + 10,
+          ),
+        );
+      }
     }
   }
 
